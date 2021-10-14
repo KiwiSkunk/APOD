@@ -19,15 +19,25 @@ Done.
 These are 11 lines that control virtually everything. 
 
 export const folder = "/APOD/" // the name of folder inside the widgets folder
+
 export const durationMs = 60 * 60 * 1000 // duration with milliseconds x 1000 x 60 x 60 = 1 hour
+
 export const width = 1440 // your screen width
+
 export const height = 900 // your screen height
+
 export const dock = 90 // height of your dock - so the caption will clear it. Take a guess.
+
 export const colour = "000000" // background colour. This is black.
+
 export const captionWidth = Math.floor(width * .7) // .7 = 70% of the screen width
+
 export const margin = Math.floor((width - captionWidth) / 2) - 20 // centre the caption on the screen
+
 export const ESToffset = -18 // get the hours offset for EST in the US for your location.
+
 export const apiKey = "DEMO_KEY" // get your api key at api.nasa.govt (it's free and not hard)
+
 export const imageOut = "imgfit.jpg" // The name of the desktop image
 
 That should do it. I've tested on a few Macs of mine and it worked.
