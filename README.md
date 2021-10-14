@@ -7,6 +7,7 @@ What's new
 Complete rewrite. All Mac's should have everything installed and ready to go. 
 Just configure apod.jsx to suit your Mac.
 And get an API key from NASA. It's free and easy. 
+I have included a 'default.jpg' which you can replace with anything you like as long as it is called 'default.jpg' and isn't too big (1-3Mb).
 
 Configuration
 
