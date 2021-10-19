@@ -14,7 +14,7 @@ export const apiKey = "DEMO_KEY" // get your api key at api.nasa.govt (it's free
 export const imageOut = "imgfit.jpg" // The name of the desktop image
 // **************END OPTIONS ******************
 export const refreshFrequency = durationMs;
-export const initialState = { output: "\nLoading\n\nCopyright: Skunkworks\n2021\nwww.skunkworks.net.nz\n" };
+export const initialState = { output: "++Loading++++Copyright: Skunkworks++2021++www.skunkworks.net.nz++" };
 export const num = Math.floor(Math.random() * 10000); // force update of image
 export const stamp = Date() // force image refresh
 export const videoHeight = Math.floor(captionWidth * .56)
