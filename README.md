@@ -1,7 +1,7 @@
 # apod.widget
 Übersicht APOD desktop image and video
-Updated 15 Oct 2021
-Bug fix 18 Oct 2021
+
+Updated 15 Oct 2021 - Bug fix 18 Oct 2021
 
 What's new
 
