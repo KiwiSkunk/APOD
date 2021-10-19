@@ -62,7 +62,7 @@ export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/w
 
 export const render = ({ output }, refreshFrequency ) => {
   console.log(output);
-  const commandValues = output.split("\n");
+  const commandValues = output.split("++");
   const title = commandValues[0];
   const imageCaption = commandValues[1];
   const copyright = commandValues[2];

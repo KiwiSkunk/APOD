@@ -101,6 +101,6 @@ else
     sips -z $newH $newW ${apodFull} --out ${imageOut} &> /dev/null
     sips ${imageOut} -p $maxheight $maxwidth --padColor $colour &> /dev/null
 fi
-output="${title[0]}\n${explanation[0]}\n${copyright[0]}\n${date[0]}\n${video[0]}\n${URL}\n${folderName}${imageOut}?ver=$(date)"
+output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${URL}++${folderName}${imageOut}?ver=$(date)"
 
 echo -e "${output}"
