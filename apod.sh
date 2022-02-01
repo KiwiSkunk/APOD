@@ -76,9 +76,10 @@ else
     if [ "${hdURL}" = "https:" ]; then
         cp ${apodDefault} ${apodFull}
         video="Todays image is a video."
+        videoURL="${URL}&autoplay=1&mute=1"
         else
         # download the image
-        video=""
+        videoURL=""
         curl -o ${apodFull} ${hdURL} -ks
     fi
     #get the image details and assign the values
@@ -89,18 +90,21 @@ else
     hdiff=$(printf "%d" "$((1000 * $maxheight / $srcH))")
     newW=$maxwidth
     newH=$maxheight
+    adjustment=$(($dockH * $wdiff / 1000))
     # Process fitting to screen
     if [ $wdiff -lt $hdiff ]; then
         newH=$(($srcH * $wdiff / 1000))
-        newH=$(($newH - $dockH))
+        newH=$(($newH - $dockH * 2))
+        newW=$(($newW - $adjustment * 2))
     else
         newW=$(($srcW * $hdiff / 1000))
-        newH=$(($newH - $dockH))
+        newH=$(($newH - $dockH * 2))
+        newW=$(($newW - $adjustment * 2))
     fi
     # process with sips with '&> /dev/null' to suppress warnings, errors etc
     sips -z $newH $newW ${apodFull} --out ${imageOut} &> /dev/null
     sips ${imageOut} -p $maxheight $maxwidth --padColor $colour &> /dev/null
 fi
-output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${URL}++${folderName}${imageOut}?ver=$(date)"
+output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${folderName}${imageOut}?ver=${today}"
 
 echo -e "${output}"
