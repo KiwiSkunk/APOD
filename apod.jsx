@@ -8,7 +8,7 @@ export const height = 1440 // your screen height
 export const dock = 90 // height of your dock - so the caption will clear it
 export const colour = "000000" // background colour
 export const captionWidth = 450 // Math.floor(width * .7)
-export const videoWidth = Math.floor(width * .7) // .7 = 70% of the screen width
+export const videoWidth = Math.floor(width * .6) // .7 = 70% of the screen width
 export const margin = 10 // Math.floor((width - captionWidth) / 2) - 20
 export const videoMargin = Math.floor((width - videoWidth) / 2) - 20 // centre the caption on the screen
 export const ESToffset = -18 // get the hours offset for EST in the US.
@@ -21,15 +21,12 @@ export const num = Math.floor(Math.random() * 10000); // force update of image
 export const stamp = Date() // force image refresh
 export const videoHeight = Math.floor(videoWidth * .56)
 
+// call the shell script that does the work
+export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/widgets"+folder+"apod.sh "+folder+" "+width+" "+height+" "+dock+" "+colour+" "+ESToffset+" "+apiKey+" "+imageOut
+
+export const captionTop = -(height - dock)
+
 export const className = `
-  .background {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: ${width}px;
-    height: ${height}px;
-    z-index: 0;
-  }
   .caption {
     position: absolute;
     bottom: ${dock}px;
@@ -56,21 +53,15 @@ export const className = `
     margin-left: ${videoMargin}px;
     width: ${videoWidth}px;
     height: ${videoHeight}px;
+    background: none;
+    color: none;
+  }
+  .imageBox {
+    position: absolute;
   }
 `
 
-// call the shell script that does the work
-export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/widgets"+folder+"apod.sh "+folder+" "+width+" "+height+" "+dock+" "+colour+" "+ESToffset+" "+apiKey+" "+imageOut
-
-// /* command: (callback) ->
-//   proxy = "http://127.0.0.1:41417/"
-//   server = "http://example.com:8080"
-//   path = "/getsomejson"
-//   $.get proxy + server + path, (json) ->
-//     callback null, json
-//  */    
-
-    // Render the view
+// Render the view
 export const render = ({ output }, refreshFrequency ) => {
   console.log(output);
   const commandValues = output.split("++");
@@ -81,14 +72,22 @@ export const render = ({ output }, refreshFrequency ) => {
   const video = commandValues[4];
   const videourl = commandValues[5];
   const image = commandValues[6];
+  const imageH = commandValues[7];
+  const imageW = commandValues[8];
+  const leftM = ((width - imageW) / 2)
+  const bottomM = ((height - imageH) / 2)
+  const leftMargin = `${leftM}px`
+  const tall = `${imageH}px`
+  const wide = `${imageW}px`
+  const bottomMargin = `${bottomM}px`
 
   return (
-    <div className='background'>
-      <div className="videoBox">
-        <iframe width="100%" height="100%" src={videourl} frameBorder="0" ></iframe>
-      </div>
-      <img src={image} />
-      <div className='caption'><b>{title}</b><br />{video} {imageCaption}<br />{copyright} -{date}</div>
+  <div>
+    <div className="videoBox">
+      <iframe width="100%" height="100%" src={videourl} frameBorder="0" ></iframe>
     </div>
+    <img className="imagebox" style={{marginLeft: leftMargin, bottom: bottomMargin, height: tall, width: wide }} src={image} />
+    <div className='caption'><b>{title}</b><br />{video} {imageCaption}<br />{copyright} -{date}</div>
+  </div>
   );
 };

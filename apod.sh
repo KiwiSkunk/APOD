@@ -14,6 +14,7 @@ imageOut=$8
 # ***************** EXTRAS ******************
 apodFull=apodFull.jpg
 apodDefault=default.jpg
+maxheight=$((maxheight - dockH))
 
 # change to working directory
 cd "${HOME}/Library/Application Support/Übersicht/widgets$folderName" || exit
@@ -40,7 +41,7 @@ IFS="\"" read -ra url <<<${capture}
 URL="https:${url[0]}" 
 
 # find the text for explanation
-regex2="(?:\"explanation\":\")(.*?)(?:\",)" #note the differce here
+regex2="(?:\"explanation\":\")(.*?)(?:\",\")" #note the differce here
 explanationsection="$(grep -oiE "${regex2}" apod.json)"
 explanationTrim="$(cut -d ':' -f2-6 <<<${explanationsection})" # get everything after the first :
 IFS="\"" read -ra maintext <<<${explanationTrim}
@@ -90,21 +91,17 @@ else
     hdiff=$(printf "%d" "$((1000 * $maxheight / $srcH))")
     newW=$maxwidth
     newH=$maxheight
-    adjustment=$(($dockH * $wdiff / 1000))
     # Process fitting to screen
     if [ $wdiff -lt $hdiff ]; then
         newH=$(($srcH * $wdiff / 1000))
-        newH=$(($newH - $dockH * 2))
-        newW=$(($newW - $adjustment * 2))
+        newW=$(($srcW * $wdiff / 1000))
     else
         newW=$(($srcW * $hdiff / 1000))
-        newH=$(($newH - $dockH * 2))
-        newW=$(($newW - $adjustment * 2))
+        newH=$(($srcH * $hdiff / 1000))
     fi
     # process with sips with '&> /dev/null' to suppress warnings, errors etc
     sips -z $newH $newW ${apodFull} --out ${imageOut} &> /dev/null
-    sips ${imageOut} -p $maxheight $maxwidth --padColor $colour &> /dev/null
 fi
-output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${folderName}${imageOut}?ver=${today}"
+output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${folderName}${imageOut}?ver=${today}++${newH}++${newW}"
 
 echo -e "${output}"
