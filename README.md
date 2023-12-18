@@ -2,6 +2,7 @@
 Übersicht APOD desktop image and video
 
 Updated 15 Oct 2021 - Bug fix 18 Oct 2021 & 15 March 2022
+Rewrite 19 Dec 2023
 
 What's new
 
