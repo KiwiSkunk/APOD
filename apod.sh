@@ -7,41 +7,50 @@ folderName=$1 # path to your folder
 maxwidth=$2  # your screen width
 maxheight=$3 # your screen height
 dockH=$4 # dock height in pixels
-colour=$5
-today=$(date -v $6H +"%Y-%m-%d") # get the date for EST in the US. Edit the -17H here for the offset from EST to your timeszone. I'm 17 hours ahead so needed to subtract -17 hours. If you don't know make it -24H and it won't break anything but you'll be late to the party!
-apikey=$7
-imageOut=$8
+apikey=$5
 # ***************** EXTRAS ******************
-apodFull=apodFull.jpg
-apodDefault=default.jpg
+apodDefault=default.png
 maxheight=$((maxheight - dockH))
 
 # change to working directory
 cd "${HOME}/Library/Application Support/Übersicht/widgets$folderName" || exit
 
 # build download link
-apodURL="https://api.nasa.gov/planetary/apod?api_key=${apikey}&date=${today}"
+apodURL="https://api.nasa.gov/planetary/apod?api_key=vtFnldwWzZbyZDNdiVv4fJIgETyIdZzvTwIg4D3U"
 
 # download the 'json' text
 curl ${apodURL} -o 'apod.json' -ks
 
 # find the text for hdurl
-regex="(?:\"hdurl\":\")(.*?)(?:\")" # minor change to this would make this give groups - but groups aren't avalible in bash
-hdurlsection="$(grep -oiE "${regex}" apod.json)" 
+regex0="(?:\"hdurl\":\")(.*?)(?:\")" # minor change to this would make this give groups - but groups aren't available in bash
+hdurlsection="$(grep -oiE "${regex0}" apod.json)" 
 # so we do more to get the required part
 capture="$(cut -d ':' -f3 <<<${hdurlsection})"
+IFS="\"" read -ra url <<<${capture}
+hdURL="https:${url[0]}"
+
+# find the text for url as fallback
+regex0="(?:\"url\":\")(.*?)(?:\")" # minor change to this would make this give groups - but groups aren't available in bash
+urlsection="$(grep -oiE "${regex0}" apod.json)" 
+# so we do more to get the required part
+capture="$(cut -d ':' -f3 <<<${urlsection})"
 IFS="\"" read -ra hdurl <<<${capture}
-hdURL="https:${hdurl[0]}" 
+hdURL="https:${url[0]}"
 
 # find the text for url
-regex="(?:\"url\":\")(.*?)(?:\")"
-urlsection="$(grep -oiE "${regex}" apod.json)"
+regex1="(?:\"url\":\")(.*?)(?:\")"
+urlsection="$(grep -oiE "${regex1}" apod.json)"
 capture="$(cut -d ':' -f3 <<<${urlsection})"
 IFS="\"" read -ra url <<<${capture}
 URL="https:${url[0]}" 
 
+# find the text for imagename
+regex6="\w+\.(jpeg|png|jpg|webp|gif)"
+ImageName="$(grep -oiE "${regex6}" <<<${hdURL})"
+apodFull="X_${ImageName}"
+
 # find the text for explanation
-regex2="(?:\"explanation\":\")(.*?)(?:\",\")" #note the differce here
+regex2="(?:\"explanation\":\")(.*?)(?:\",\")" #note the difference here
 explanationsection="$(grep -oiE "${regex2}" apod.json)"
 explanationTrim="$(cut -d ':' -f2-6 <<<${explanationsection})" # get everything after the first :
 IFS="\"" read -ra maintext <<<${explanationTrim}
@@ -69,7 +78,7 @@ title=${titletext%??} # remove last two characters
 
 # pass data back to React
 if [ ! -s apod.json ]; then
-    # we could write the last ouput to disk and read it back but I don't see the point.
+    # we could write the last output to disk and read it back but I don't see the point.
     output="APOD Image\nDisplay the image of the day on your desktop\nSkunkworks Group Ltd\n2021\n\nhttp:www.skunkworks.net.nz\n${folderName}${imageOut}" # this is nonsense but passes something back to process
 else
     # lets get the image and process it...
@@ -83,8 +92,17 @@ else
         videoURL=""
         curl -o ${apodFull} ${hdURL} -ks
     fi
+
     #get the image details and assign the values
     srcW=$(sips --getProperty pixelWidth ${apodFull} | awk '/pixelWidth/ {print $2}')
+    #check there is an image
+    if [ "${srcW}" = "<nil>" ]; then
+        ImageName="$(grep -oiE "${regex6}" <<<${URL})"
+        apodFull="X_${ImageName}"
+        curl -o ${apodFull} ${URL} -ks
+        srcW=$(sips --getProperty pixelWidth ${apodFull} | awk '/pixelWidth/ {print $2}')
+    fi
+
     srcH=$(sips --getProperty pixelHeight ${apodFull} | awk '/pixelHeight/ {print $2}')
     # calculate the new sizes - no integers in bash
     wdiff=$(printf "%d" "$((1000 * $maxwidth / $srcW))")
@@ -100,8 +118,9 @@ else
         newH=$(($srcH * $hdiff / 1000))
     fi
     # process with sips with '&> /dev/null' to suppress warnings, errors etc
-    sips -z $newH $newW ${apodFull} --out ${imageOut} &> /dev/null
+    sips -z $newH $newW ${apodFull} --out "images/${ImageName}" &> /dev/null
 fi
-output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${folderName}${imageOut}?ver=${today}++${newH}++${newW}"
+output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${ImageName}++${newH}++${newW}"
 
 echo -e "${output}"
+unlink ${apodFull}
