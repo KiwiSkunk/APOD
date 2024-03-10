@@ -16,7 +16,7 @@ maxheight=$((maxheight - dockH))
 cd "${HOME}/Library/Application Support/Übersicht/widgets$folderName" || exit
 
 # build download link
-apodURL="https://api.nasa.gov/planetary/apod?api_key=vtFnldwWzZbyZDNdiVv4fJIgETyIdZzvTwIg4D3U"
+apodURL="https://api.nasa.gov/planetary/apod?api_key="$5
 
 # download the 'json' text
 curl ${apodURL} -o 'apod.json' -ks
