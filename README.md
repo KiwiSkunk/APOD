@@ -3,6 +3,7 @@
 
 Updated 15 Oct 2021 - Bug fix 18 Oct 2021 & 15 March 2022
 Rewrite 19 Dec 2023
+Rewrite 10 Dec 2025
 
 What's new
 
@@ -23,32 +24,29 @@ These are 11 lines that control virtually everything.
 
 // ***************** OPTIONS ******************
 
-export const folder = "/APOD/"
+export const folder = "APOD"               // widget folder
 
-export const durationMs = 60 * 60 * 1000 // duration with milliseconds
+export const durationMs = 60 * 60 * 1000     // refresh every hour
 
-export const width = 2560 // your screen width
+export const width = 3008                    // screen width
 
-export const height = 1440 // your screen height
+export const height = 1692                   // screen height
 
-export const dock = 90 // height of your dock - so the caption will clear it
+export const dock = 90                       // macOS dock height
 
-export const colour = "000000" // background colour
+export const captionWidth = 500              // width of caption block
 
-export const captionWidth = 450 // Math.floor(width * .7)
+export const videoWidth = Math.floor(width * 0.6)
 
-export const videoWidth = Math.floor(width * .6) // .7 = 70% of the screen width
+export const videoMargin = Math.floor((width - videoWidth) / 2)
 
-export const margin = 10 // Math.floor((width - captionWidth) / 2) - 20
+export const videoTopMargin = 80
 
-export const videoMargin = Math.floor((width - videoWidth) / 2) - 20 // centre the caption on the screen
-
-export const ESToffset = -18 // get the hours offset for EST in the US.
+export const margin = 20                     // left margin for caption
 
 export const apiKey = "DEMO_KEY" // get your api key at api.nasa.govt  (it's free and not hard)
 
-export const imageOut = "imgfit.jpg"
-
+// **************END OPTIONS ******************
 
 That should do it. I've tested on a few Macs of mine and it worked.
 Disclaimer
