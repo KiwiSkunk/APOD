@@ -1,126 +1,116 @@
 #!/usr/bin/env bash
 export LC_ALL=C.UTF-8
-set -o allexport
+set -u  # safer than allexport; avoids silent failures
 
-# ***************** VARIABLES PASSED ******************
-folderName=$1 # path to your folder
-maxwidth=$2  # your screen width
-maxheight=$3 # your screen height
-dockH=$4 # dock height in pixels
-apikey=$5
-# ***************** EXTRAS ******************
-apodDefault=default.png
+# ***************** ARGUMENTS ******************
+folderName=$1
+maxwidth=$2
+maxheight=$3
+dockH=$4
+apiKey=$5
+apodDefault="default.png"
 maxheight=$((maxheight - dockH))
 
-# change to working directory
-cd "${HOME}/Library/Application Support/Übersicht/widgets$folderName" || exit
+# ***************** DEFAULT VALUES ******************
+ImageNameU="$apodDefault"
+explanation="No explanation available."
+date="$(date +%Y-%m-%d)"
+copyright="NASA"
+title="Astronomy Picture of the Day"
+video=""
+videoURL=""
 
-# build download link
-apodURL="https://api.nasa.gov/planetary/apod?api_key="$5
+# image fallback sizes
+newW=$(sips --getProperty pixelWidth  "$apodDefault" 2>/dev/null | awk '/pixelWidth/ {print $2}')
+newH=$(sips --getProperty pixelHeight "$apodDefault" 2>/dev/null | awk '/pixelHeight/ {print $2}')
 
-# download the 'json' text
-curl ${apodURL} -o 'apod.json' -ks
+# ***************** MOVE TO WIDGET FOLDER ******************
+cd "${HOME}/Library/Application Support/Übersicht/widgets/${folderName}/" || exit 0
+mkdir -p images
 
-# find the text for hdurl
-regex0="(?:\"hdurl\":\")(.*?)(?:\")" # minor change to this would make this give groups - but groups aren't available in bash
-hdurlsection="$(grep -oiE "${regex0}" apod.json)" 
-# so we do more to get the required part
-capture="$(cut -d ':' -f3 <<<${hdurlsection})"
-IFS="\"" read -ra url <<<${capture}
-hdURL="https:${url[0]}"
+# ***************** DOWNLOAD JSON ******************
+rm -f apod.json
+apodURL="https://api.nasa.gov/planetary/apod?api_key=${apiKey}"
 
-# find the text for url as fallback
-regex0="(?:\"url\":\")(.*?)(?:\")" # minor change to this would make this give groups - but groups aren't available in bash
-urlsection="$(grep -oiE "${regex0}" apod.json)" 
-# so we do more to get the required part
-capture="$(cut -d ':' -f3 <<<${urlsection})"
-IFS="\"" read -ra hdurl <<<${capture}
-hdURL="https:${url[0]}"
-
-# find the text for url
-regex1="(?:\"url\":\")(.*?)(?:\")"
-urlsection="$(grep -oiE "${regex1}" apod.json)"
-capture="$(cut -d ':' -f3 <<<${urlsection})"
-IFS="\"" read -ra url <<<${capture}
-URL="https:${url[0]}" 
-
-# find the text for imagename
-regex6="\w+\.(jpeg|png|jpg|webp|gif)"
-ImageName="$(grep -oiE "${regex6}" <<<${hdURL})"
-apodFull="X_${ImageName}"
-
-# find the text for explanation
-regex2="(?:\"explanation\":\")(.*?)(?:\",\")" #note the difference here
-explanationsection="$(grep -oiE "${regex2}" apod.json)"
-explanationTrim="$(cut -d ':' -f2-6 <<<${explanationsection})" # get everything after the first :
-IFS="\"" read -ra maintext <<<${explanationTrim}
-explanation=${maintext%??} # remove last two characters
-
-# find the text for date
-regex3="(?:\"date\":\")(.*?)(?:\")"
-datesection="$(grep -oiE "${regex3}" apod.json)"
-capture="$(cut -d ':' -f2 <<<${datesection})"
-IFS="\"" read -ra date <<<${capture}
-
-# find the text for copyright
-regex4="(?:\"copyright\":\")(.*?)(?:\")"
-copyrightsection="$(grep -oiE "${regex4}" apod.json)"
-capture="$(cut -d ':' -f2 <<<${copyrightsection})"
-IFS="\"" read -ra copyright <<<${capture}
-
-# find the text for title
-regex5="(?:\"title\":\")(.*?)(?:\",)"
-titlesection="$(grep -oiE "${regex5}" apod.json)"
-titleTrim="$(cut -d ':' -f2-6 <<<${titlesection})"
-IFS="\"" read -ra titletext <<<${titleTrim}
-title=${titletext%??} # remove last two characters
-
-
-# pass data back to React
-if [ ! -s apod.json ]; then
-    # we could write the last output to disk and read it back but I don't see the point.
-    output="APOD Image\nDisplay the image of the day on your desktop\nSkunkworks Group Ltd\n2021\n\nhttp:www.skunkworks.net.nz\n${folderName}${imageOut}" # this is nonsense but passes something back to process
+if ! curl -sS -f -o apod.json "$apodURL"; then
+   echo "DEBUG: JSON download failed" >> /tmp/apod_output.log
 else
-    # lets get the image and process it...
-    # if hdURL is empty use default image
-    if [ "${hdURL}" = "https:" ]; then
-        cp ${apodDefault} ${apodFull}
-        video="Todays image is a video."
-        videoURL="${URL}&autoplay=1&mute=1"
-        else
-        # download the image
-        videoURL=""
-        curl -o ${apodFull} ${hdURL} -ks
-    fi
 
-    #get the image details and assign the values
-    srcW=$(sips --getProperty pixelWidth ${apodFull} | awk '/pixelWidth/ {print $2}')
-    #check there is an image
-    if [ "${srcW}" = "<nil>" ]; then
-        ImageName="$(grep -oiE "${regex6}" <<<${URL})"
-        apodFull="X_${ImageName}"
-        curl -o ${apodFull} ${URL} -ks
-        srcW=$(sips --getProperty pixelWidth ${apodFull} | awk '/pixelWidth/ {print $2}')
-    fi
+   # ***************** JSON HELPER ******************
+   extract_json_value() {
+       local key="$1"
+       jq -r ".${key} // empty" apod.json \
+           | tr '\n' ' ' \
+           | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//'
+   }
 
-    srcH=$(sips --getProperty pixelHeight ${apodFull} | awk '/pixelHeight/ {print $2}')
-    # calculate the new sizes - no integers in bash
-    wdiff=$(printf "%d" "$((1000 * $maxwidth / $srcW))")
-    hdiff=$(printf "%d" "$((1000 * $maxheight / $srcH))")
-    newW=$maxwidth
-    newH=$maxheight
-    # Process fitting to screen
-    if [ $wdiff -lt $hdiff ]; then
-        newH=$(($srcH * $wdiff / 1000))
-        newW=$(($srcW * $wdiff / 1000))
-    else
-        newW=$(($srcW * $hdiff / 1000))
-        newH=$(($srcH * $hdiff / 1000))
-    fi
-    # process with sips with '&> /dev/null' to suppress warnings, errors etc
-    sips -z $newH $newW ${apodFull} --out "images/${ImageName}" &> /dev/null
+   # ***************** GET JSON FIELDS ******************
+   hdURL=$(extract_json_value hdurl)
+   URL=$(extract_json_value url)
+   media=$(extract_json_value media_type)
+
+   tmp=$(extract_json_value explanation); [ -n "$tmp" ] && explanation="$tmp"
+   tmp=$(extract_json_value date);        [ -n "$tmp" ] && date="$tmp"
+   tmp=$(extract_json_value copyright);   [ -n "$tmp" ] && copyright="$tmp"
+   tmp=$(extract_json_value title);       [ -n "$tmp" ] && title="$tmp"
+
+   [ -z "$media" ] && media="other"
+
+   # ***************** IMAGE OR VIDEO? ******************
+   if [ "$media" = "video" ]; then
+       video="Video"
+       if [ -n "$URL" ]; then
+           videoURL="${URL}?&autoplay=1&mute=1"
+       elif [ -n "$hdURL" ]; then
+           videoURL="${hdURL}?&autoplay=1&mute=1"
+       fi
+
+   else
+       # pick usable image (hdURL preferred)
+       chosenURL=""
+       for c in "$hdURL" "$URL"; do
+           if echo "$c" | grep -qiE '\.(jpe?g|png|gif|webp)$'; then
+               chosenURL="$c"
+               break
+           fi
+       done
+
+       if [ -n "$chosenURL" ]; then
+           base=$(basename "${chosenURL%%\?*}")
+           ImageNameU="$base"
+           tmpfile="images/.apod_tmp_$base"
+
+           if curl -sS -f -L -o "$tmpfile" "$chosenURL"; then
+               origW=$(sips --getProperty pixelWidth  "$tmpfile" | awk '/pixelWidth/ {print $2}')
+               origH=$(sips --getProperty pixelHeight "$tmpfile" | awk '/pixelHeight/ {print $2}')
+
+               if [ -n "$origW" ] && [ -n "$origH" ] && [ "$origW" -gt 0 ] && [ "$origH" -gt 0 ]; then
+                   scale=$(awk -v mw="$maxwidth" -v mh="$maxheight" -v ow="$origW" -v oh="$origH" \
+                       'BEGIN{sw=mw/ow; sh=mh/oh; s=(sw<sh?sw:sh); if(s>1) s=1; print s}')
+                   newW=$(awk -v ow="$origW" -v s="$scale" 'BEGIN{printf "%d", ow*s}')
+                   newH=$(awk -v oh="$origH" -v s="$scale" 'BEGIN{printf "%d", oh*s}')
+               fi
+
+               # resize
+               if ! sips -z "$newH" "$newW" "$tmpfile" --out "images/$ImageNameU" &>/dev/null; then
+                   cp "$tmpfile" "images/$ImageNameU"
+                   newW=$(sips --getProperty pixelWidth  "images/$ImageNameU" | awk '/pixelWidth/ {print $2}')
+                   newH=$(sips --getProperty pixelHeight "images/$ImageNameU" | awk '/pixelHeight/ {print $2}')
+               fi
+           else
+               echo "DEBUG: image download failed $chosenURL" >> /tmp/apod_output.log
+               ImageNameU="$apodDefault"
+           fi
+
+           rm -f "$tmpfile"
+       else
+           ImageNameU="$apodDefault"
+       fi
+   fi
 fi
-output="${title[0]}++${explanation[0]}++${copyright[0]}++${date[0]}++${video[0]}++${videoURL}++${ImageName}++${newH}++${newW}"
 
-echo -e "${output}"
-unlink ${apodFull}
+# ***************** SINGLE-LINE OUTPUT ******************
+output="${title}++${explanation}++${copyright}++${date}++${video}++${videoURL}++${ImageNameU}++${newH}++${newW}"
+
+echo "DEBUG APOD output: $output" >> /tmp/apod_output.log
+printf '%s' "$output"
