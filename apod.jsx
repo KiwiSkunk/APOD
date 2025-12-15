@@ -11,7 +11,7 @@ export const videoWidth = Math.floor(width * 0.6)
 export const videoMargin = Math.floor((width - videoWidth) / 2)
 export const videoTopMargin = 80
 export const margin = 20                     // left margin for caption
-export const apiKey = "vtFnldwWzZbyZDNdiVv4fJIgETyIdZzvTwIg4D3U" // NASA API key
+export const apiKey = "DEMO_KEY" // NASA API key (Replace with your own for higher rate limits)
 // **************END OPTIONS ******************
 
 const usableHeight = height - dock;
