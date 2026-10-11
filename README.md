@@ -1,9 +1,9 @@
 # apod.widget
 Übersicht APOD desktop image and video
 
-Updated Oct 2025
+Updated Oct 2026
 
-What's new
+## What's new
 
 Minor update.
 
