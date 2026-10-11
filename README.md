@@ -7,8 +7,8 @@ What's new
 
 Minor update.
 
-All Mac's since OS 10.6 should have everything installed and ready to go (Bash and SIPs (Simple Image Processor)). 
-Just configure apod.jsx to suit your tastes.
+All Mac's since OS 10.6 should have everything installed and ready to go (Bash, AppleScript and SIPs (Simple Image Processor)). 
+Just configure `apod.jsx` to suit your tastes.
 Get an API key from NASA. It's free and easy. 
 
 ## Configuration
@@ -16,13 +16,13 @@ Get an API key from NASA. It's free and easy.
 **Only 1 must be changed** - the API key. It will be 40 characters long.
 Go to https://api.nasa.gov
 Fill in the three required fields.
-Copy the key into the `apod.jsx script`. Not the web address, just the key.
+Copy the key into the `apod.jsx` script. Not the web address, just the key.
 Done.
 
 **These are 11 lines that control virtually everything.**
 
 ```// ***************** OPTIONS ******************
-export const folder = "APOD"               // widget folder
+export const folder = "APOD"                 // widget folder
 export const durationMs = 60 * 60 * 1000     // refresh every hour
 export const width = 3008                    // screen width
 export const height = 1692                   // screen height
