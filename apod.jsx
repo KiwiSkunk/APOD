@@ -6,19 +6,19 @@ export const durationMs = 60 * 60 * 1000     // refresh every hour
 export const width = 3008                    // screen width
 export const height = 1692                   // screen height
 export const dock = 90                       // macOS dock height
-export const captionWidth = 500              // width of caption block
+export const captionWidth = 350              // width of caption block
 export const videoWidth = Math.floor(width * 0.6)
 export const videoMargin = Math.floor((width - videoWidth) / 2)
 export const videoTopMargin = 80
 export const margin = 20                     // left margin for caption
 export const apiKey = "DEMO_KEY" // NASA API key (Replace with your own for higher rate limits)
+export const videoReplayDelay = 600  // seconds to wait before replaying video
 // **************END OPTIONS ******************
 
 const usableHeight = height - dock;
 const imagefolder = folder+"/images/";
-export const refreshFrequency = 600000; // durationMs
-export const initialState = { output: "Loading APOD image of the day. By Skunkworks 2026" };
-export const stamp = new Date(); // force image refresh
+export const refreshFrequency = durationMs; 
+export const initialState = { output: "Initialising APOD image of the day..." };
 
 // ---- Fade + slow zoom animation styles ----
 const imageAnim = {
@@ -49,12 +49,17 @@ export const className = `
 export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/widgets/"+folder+"/apod.sh "+folder+" "+width+" "+height+" "+dock+" "+apiKey
 
 // -------------- main render ----------------
-export const render = ({ output }) => {
-  if (!output) return <div>Loading APOD image of the day. By Skunkworks 2026</div>;
+export const render = ({ output, error }) => {
+  // 1. Check for System Errors (Script failed to run)
+  if (error) return <div style={{color: 'black'}}>Error: {String(error)}</div>;
 
+  // 2. Check if Data exists at all
+  if (!output) return <div style={{color: 'black'}}>Connecting to NASA...</div>;
+
+  // 3. Split the data into parts
   const parts = output.split("++");
-  if (parts.length < 9) return <div>Downloading image...</div>;
 
+  // 5. Destructure the parts
   const [
     title,
     explanation,
@@ -69,10 +74,11 @@ export const render = ({ output }) => {
 
   // Assuming margin, videoTopMargin, videoMargin, videoWidth, and captionWidth are defined in the scope
 
-  const isVideo = !!videoUrl;
+  const isVideo = videoFlag === "Video";
   const w = parseInt(imageW);
   const h = parseInt(imageH);
   const leftMargin = Math.floor((width - w) / 2);
+  
 
   // ------------ blurred patch behind caption (B) -------------
   // Note: backdropFilter here blurs the NEW full-screen blurred background
@@ -95,25 +101,26 @@ export const render = ({ output }) => {
   );
 
   // ------------ glass-style caption (A) -------------
-  const caption = (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 20,
-        left: margin + 10,
-        width: captionWidth,
-        padding: "14px 20px",
-        lineHeight: "1.3em",
-        borderRadius: "12px",
-        color: "white",
-        background: "rgba(0, 0, 0, 0.25)",
-        backdropFilter: "blur(30px) saturate(160%)",
-        WebkitBackdropFilter: "blur(30px) saturate(160%)",
-        textShadow: "0 0 6px black",
-        fontFamily: "Sans-Serif",
-        textAlign: "center",
-      }}
-    >
+const caption = (
+  <div
+    style={{
+      position: "absolute",
+      bottom: 20,
+      left: margin + 10,
+      width: captionWidth,
+      padding: "14px 20px",
+      lineHeight: "1.3em",
+      borderRadius: "12px",
+      color: "white",
+      background: "rgba(0, 0, 0, 0.35)",        // slightly more opaque
+      backdropFilter: "blur(20px) saturate(160%)",
+      WebkitBackdropFilter: "blur(20px) saturate(160%)",
+      textShadow: "0 0 6px black",
+      fontFamily: "Sans-Serif",
+      textAlign: "center",
+      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.4)", // optional: soft drop shadow around box
+    }}
+  >
       <b style={{ fontSize: "1.1em" }}>{title}</b><br /><br />
       {isVideo && <span style={{ fontSize: "0.9em" }}>Video<br /></span>}
       {explanation && <span style={{ fontSize: "0.9em" }}>{explanation}<br /><br /></span>}
@@ -158,13 +165,12 @@ export const render = ({ output }) => {
       if (isDirectVideo && videoRef.current) {
         const v = videoRef.current;
         let timeoutId = null;
-        const onEnded = () => {
-          timeoutId = setTimeout(() => {
-            v.currentTime = 0;
-            v.play().catch(() => {});
-          }, 60000);
-        };
-        v.addEventListener('ended', onEnded);
+			const onEnded = () => {
+			  timeoutId = setTimeout(() => {
+				v.currentTime = 0;
+				v.play().catch(() => {});
+			  }, videoReplayDelay * 1000);  // CHANGED
+			};        v.addEventListener('ended', onEnded);
         return () => {
           v.removeEventListener('ended', onEnded);
           if (timeoutId) clearTimeout(timeoutId);
@@ -229,35 +235,30 @@ export const render = ({ output }) => {
     }, []);
 
     // YouTube: load API and attach player to react to ended event
-    React.useEffect(() => {
-      if (!ytId) return;
-
-      // build embed src with enablejsapi=1 to allow control
-      const embedSrc = `https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=1&rel=0&modestbranding=1`;
-      const iframe = containerRef.current && containerRef.current.querySelector('iframe');
-
-      let player = null;
-      let timeoutId = null;
-
-      const setupPlayer = () => {
-        try {
-          player = new window.YT.Player(iframe, {
-            events: {
-              onReady: () => {
-                try { player.mute(); } catch (e) {}
-              },
-              onStateChange: e => {
-                // YT.PlayerState.ENDED === 0
-                if (e.data === 0) {
-                  timeoutId = setTimeout(() => {
-                    try { player.playVideo(); } catch (e) {}
-                  }, 60000);
-                }
-              }
-            }
-          });
-        } catch (e) {}
-      };
+	React.useEffect(() => {
+	  if (!ytId) return;
+		
+	  let player = null;
+	  let timeoutId = null;
+	
+	  const setupPlayer = () => {
+		try {
+		  player = new window.YT.Player(`yt-player-${ytId}`, {  
+			events: {
+			  onReady: () => {
+				try { player.mute(); } catch (e) {}
+			  },
+			  onStateChange: e => {
+				if (e.data === 0) {
+				  timeoutId = setTimeout(() => {
+					try { player.playVideo(); } catch (e) {}
+				  }, videoReplayDelay * 1000);  // CHANGED
+				}
+			  }
+			}
+		  });
+		} catch (e) {}
+	  };
 
       // ensure YT API is loaded
       if (window.YT && window.YT.Player) {
@@ -317,22 +318,23 @@ export const render = ({ output }) => {
       );
     }
 
-    if (ytId) {
-      const embed = `https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=1&mute=1&rel=0&modestbranding=1`;
-      return (
-        <div ref={containerRef} style={style}>
-          <iframe
-            key={iframeKey}
-            src={embed}
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
-        </div>
-      );
-    }
+if (ytId) {
+  const embed = `https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=1&mute=1&rel=0&modestbranding=1`;
+  return (
+    <div ref={containerRef} style={style}>
+      <iframe
+        id={`yt-player-${ytId}`}
+        key={iframeKey}
+        src={embed}
+        width="100%"
+        height="100%"
+        frameBorder="0"
+        allow="autoplay; encrypted-media"
+        allowFullScreen
+      />
+    </div>
+  );
+}
 
     // generic iframe fallback (append mute hint when possible)
     const fallbackSrc = src ? (src.includes('?') ? src + '&mute=1' : src + '?mute=1') : src;
@@ -395,7 +397,7 @@ export const render = ({ output }) => {
               backgroundSize: "cover",
               backgroundPosition: "center",
               // Apply blur directly to the background element
-              filter: "blur(05px) brightness(60%)", 
+              filter: "blur(5px) brightness(60%)", 
               transform: "scale(1.1)", // Scale to prevent edge artifacts from the blur
           }}
       />
@@ -403,18 +405,14 @@ export const render = ({ output }) => {
 
   return (
     <div style={{ position: "relative", width, height: usableHeight }}>
-      {/* 1. Add the full-screen blurred background first */}
+      {/* Add the full-screen blurred background first */}
       {blurredBackground}
 
-      {/* 2. Main content on top */}
+      {/* Main content on top */}
       {!isVideo && imageBox}
       {videoFrame}
 
-      {/* 3. Captions and overlays */}
-      {/* blur layer behind caption */}
-      {blurBackdrop}
-
-      {/* glass-style caption */}
+      {/* Glass-style caption */}
       {caption}
     </div>
   );
