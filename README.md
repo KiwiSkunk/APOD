@@ -31,8 +31,8 @@ export const captionWidth = 350              // width of caption block
 export const videoWidth = Math.floor(width * 0.6) // width of video player (16:9 aspect ratio) 60% screen width
 export const videoMargin = Math.floor((width - videoWidth) / 2) // center video player
 export const margin = 20                     // left margin for caption
-export const apiKey = "DEMO_KEY" // NASA API key (Replace with your own for higher rate limits)
-export const videoReplayDelay = 600  // seconds to wait before replaying video
+export const apiKey = "DEMO_KEY"             // NASA API key (Replace with your own for higher rate limits)
+export const videoReplayDelay = 600          // seconds to wait before replaying video
 export const keepDays = 0                    // delete images older than this many days (0 = never delete)
 // **************END OPTIONS ******************
 ```
