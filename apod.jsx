@@ -7,12 +7,12 @@ export const width = 3008                    // screen width
 export const height = 1692                   // screen height
 export const dock = 90                       // macOS dock height
 export const captionWidth = 350              // width of caption block
-export const videoWidth = Math.floor(width * 0.6)
-export const videoMargin = Math.floor((width - videoWidth) / 2)
-export const videoTopMargin = 80
+export const videoWidth = Math.floor(width * 0.6) // width of video player (16:9 aspect ratio) 60% screen width
+export const videoMargin = Math.floor((width - videoWidth) / 2) // center video player
 export const margin = 20                     // left margin for caption
 export const apiKey = "DEMO_KEY" // NASA API key (Replace with your own for higher rate limits)
 export const videoReplayDelay = 600  // seconds to wait before replaying video
+export const keepDays = 0                    // delete images older than this many days (0 = never delete)
 // **************END OPTIONS ******************
 
 const usableHeight = height - dock;
@@ -38,16 +38,11 @@ export const className = `
     to   { transform: scale(1.05); }
   }
 
-  * {
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-  }
 `;
 
 // -------------- Bash command ---------------
 // export const command = dispatch => `bash "~/Library/Application\ Support/Übersicht/widgets/${folder}/apod.sh" \"${folder}" \"${width}" \"${height}" \"${dock}" \"${apiKey}";`;
-export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/widgets/"+folder+"/apod.sh "+folder+" "+width+" "+height+" "+dock+" "+apiKey
-
+export const command = "bash ${HOME}/Library/Application\\ Support/Übersicht/widgets/"+folder+"/apod.sh "+folder+" "+width+" "+height+" "+dock+" "+apiKey+" "+keepDays
 // -------------- main render ----------------
 export const render = ({ output, error }) => {
   // 1. Check for System Errors (Script failed to run)
@@ -72,13 +67,15 @@ export const render = ({ output, error }) => {
     imageW
   ] = parts;
 
-  // Assuming margin, videoTopMargin, videoMargin, videoWidth, and captionWidth are defined in the scope
+  // Assuming margin, videoMargin, videoWidth, and captionWidth are defined in the scope
 
   const isVideo = videoFlag === "Video";
   const w = parseInt(imageW);
   const h = parseInt(imageH);
   const leftMargin = Math.floor((width - w) / 2);
-  
+  const topMargin = Math.max(0, Math.floor((usableHeight - h) / 2));
+  const videoHeight = Math.floor(videoWidth * 0.5625);
+  const videoTopMargin = Math.max(0, Math.floor((usableHeight - videoHeight) / 2));
 
   // ------------ blurred patch behind caption (B) -------------
   // Note: backdropFilter here blurs the NEW full-screen blurred background
@@ -110,15 +107,18 @@ const caption = (
       width: captionWidth,
       padding: "14px 20px",
       lineHeight: "1.3em",
-      borderRadius: "12px",
+      borderRadius: "16px",
       color: "white",
-      background: "rgba(0, 0, 0, 0.35)",        // slightly more opaque
-      backdropFilter: "blur(20px) saturate(160%)",
-      WebkitBackdropFilter: "blur(20px) saturate(160%)",
-      textShadow: "0 0 6px black",
+      // light, slightly diagonal sheen instead of a flat black tint
+      background: "linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06))",
+      backdropFilter: "blur(24px) saturate(180%)",
+      WebkitBackdropFilter: "blur(24px) saturate(180%)",
+      border: "1px solid rgba(255, 255, 255, 0.25)",   // thin glass edge
+      textShadow: "0 1px 4px rgba(0, 0, 0, 0.6)",
       fontFamily: "Sans-Serif",
       textAlign: "center",
-      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.4)", // optional: soft drop shadow around box
+      // first value = bright top-edge highlight, second = soft drop shadow
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35), 0 8px 32px rgba(0,0,0,0.35)",
     }}
   >
       <b style={{ fontSize: "1.1em" }}>{title}</b><br /><br />
@@ -360,7 +360,7 @@ if (ytId) {
         top: videoTopMargin,
         left: videoMargin,
         width: videoWidth,
-        height: Math.floor(videoWidth * 0.56),
+        height: videoHeight,
         borderRadius: "10px",
         overflow: "hidden",
         animation: "fadeIn 1.2s ease-out forwards"
@@ -374,7 +374,7 @@ if (ytId) {
       src={imagefolder+image}
       style={{
         position: "absolute",
-        top: 0,
+        top: topMargin,
         left: leftMargin,
         width: w,
         height: h,

@@ -45,6 +45,19 @@ mkdir -p images
 newW=$(sips --getProperty pixelWidth  "images/$apodDefault" 2>/dev/null | awk '/pixelWidth/ {print $2}')
 newH=$(sips --getProperty pixelHeight "images/$apodDefault" 2>/dev/null | awk '/pixelHeight/ {print $2}')
 
+# ***************** DELETE OLD IMAGES IF REQUESTED *****************
+KEEP_DAYS="${6:-0}"
+case "$KEEP_DAYS" in
+  ''|*[!0-9]*) KEEP_DAYS=0 ;;     # anything that isn't a plain number = do nothing
+esac
+
+if [ "$KEEP_DAYS" -gt 0 ] && [ -d "$IMAGEDIR" ]; then
+  find "$IMAGEDIR" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.gif' \) \
+    ! -name "$TODAYS_IMAGE" \
+    -mtime +"$KEEP_DAYS" -delete
+fi
+
 # ***************** DOWNLOAD JSON ******************
 apodURL="https://science.nasa.gov/wp-json/wp/v2/apod-basic/?api_key=${apiKey}"
 tmpFile="apod.json.tmp"
